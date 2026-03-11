@@ -1,4 +1,4 @@
-# Codex Installation
+# OpenClaw Installation
 
 This repository provides an MCP server and skills docs for Orbiter Finance.
 

@@ -11,6 +11,7 @@ A toolkit skeleton for "one-click cross-chain" onboarding. Includes:
 - `ORBITER_API_KEY` (optional)
 - `ORBITER_RPC_MAP` (optional, JSON string mapping chain ID to RPC URL)
 - `ORBITER_RPC_MAP_PATH` (optional, default reads `rpc-map.json` at repo root)
+- `ORBITER_RPC_MAP_URL` (optional, default `https://cdn.orbiter.finance/config/chains-explore.json`)
 - `ORBITER_PRIVATE_KEY` (optional, only used for local signing in `bridge sign` / `bridge sign-broadcast`)
 
 Security note:
@@ -56,6 +57,13 @@ npx skills add Orbiter-Finance/bridge-skills
 - [OpenCode](.opencode/INSTALL.md)
 - [Cursor](.cursor-plugin/INSTALL.md)
 - [Claude](.claude-plugin/INSTALL.md)
+- [OpenClaw](.openclaw/INSTALL.md)
+
+### Supported MCP Clients
+- Claude Code
+- Cursor
+- OpenClaw
+- Any MCP-compatible client (use the stdio command above)
 
 ## MCP Tools
 - `orbiter_chains`

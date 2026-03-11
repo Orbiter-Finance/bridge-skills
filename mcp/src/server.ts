@@ -24,6 +24,8 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const baseUrl = process.env.ORBITER_API_BASE_URL ?? "https://openapi.orbiter.finance";
+const defaultRpcMapUrl =
+  process.env.ORBITER_RPC_MAP_URL ?? "https://cdn.orbiter.finance/config/chains-explore.json";
 
 const client = new OrbiterClient({
   baseUrl,
@@ -38,6 +40,27 @@ function normalizeRpcUrl(value: RpcMapValue | undefined): string | undefined {
     return value.find((entry) => typeof entry === "string" && entry.length > 0);
   }
   return undefined;
+}
+
+async function fetchRpcMapFromUrl(url: string): Promise<Record<string, RpcMapValue>> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) {
+      throw new Error(`RPC map fetch failed: ${res.status}`);
+    }
+    const json = (await res.json()) as Array<{ chainId?: string; rpc?: RpcMapValue }>;
+    const map: Record<string, RpcMapValue> = {};
+    for (const entry of json) {
+      if (entry?.chainId && entry?.rpc) {
+        map[entry.chainId] = entry.rpc;
+      }
+    }
+    return map;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function resolveRpcUrl(opts: {
@@ -62,6 +85,13 @@ async function resolveRpcUrl(opts: {
       const url = normalizeRpcUrl(map[chainId]);
       if (url) return url;
     }
+  } catch {
+    // ignore and fall through
+  }
+  try {
+    const map = await fetchRpcMapFromUrl(defaultRpcMapUrl);
+    const url = normalizeRpcUrl(map[chainId]);
+    if (url) return url;
   } catch {
     // ignore and fall through
   }

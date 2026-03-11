@@ -51,6 +51,9 @@ function getClient(): OrbiterClient {
   });
 }
 
+const defaultRpcMapUrl =
+  process.env.ORBITER_RPC_MAP_URL ?? "https://cdn.orbiter.finance/config/chains-explore.json";
+
 type RpcMapValue = string | string[];
 
 function normalizeRpcUrl(value: RpcMapValue | undefined): string | undefined {
@@ -86,7 +89,35 @@ async function resolveRpcUrl(opts: {
   } catch {
     // ignore and fall through
   }
+  try {
+    const map = await fetchRpcMapFromUrl(defaultRpcMapUrl);
+    const url = normalizeRpcUrl(map[chainId]);
+    if (url) return url;
+  } catch {
+    // ignore and fall through
+  }
   throw new Error(`RPC URL not found for chain ${chainId}`);
+}
+
+async function fetchRpcMapFromUrl(url: string): Promise<Record<string, RpcMapValue>> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) {
+      throw new Error(`RPC map fetch failed: ${res.status}`);
+    }
+    const json = (await res.json()) as Array<{ chainId?: string; rpc?: RpcMapValue }>;
+    const map: Record<string, RpcMapValue> = {};
+    for (const entry of json) {
+      if (entry?.chainId && entry?.rpc) {
+        map[entry.chainId] = entry.rpc;
+      }
+    }
+    return map;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function loadRpcMap(): Promise<Record<string, string>> {
@@ -95,11 +126,19 @@ async function loadRpcMap(): Promise<Record<string, string>> {
     (await (async () => {
       const mapPath = process.env.ORBITER_RPC_MAP_PATH ?? findRpcMapPath();
       if (!mapPath) {
-        throw new Error("rpc-map.json not found");
+        return "";
       }
       return readFile(mapPath, "utf8");
     })());
+  if (!raw) {
+    const remote = await fetchRpcMapFromUrl(defaultRpcMapUrl);
+    return normalizeRpcMap(remote);
+  }
   const parsed = JSON.parse(raw) as Record<string, RpcMapValue>;
+  return normalizeRpcMap(parsed);
+}
+
+function normalizeRpcMap(parsed: Record<string, RpcMapValue>): Record<string, string> {
   const normalized: Record<string, string> = {};
   for (const [chainId, value] of Object.entries(parsed)) {
     const url = normalizeRpcUrl(value);

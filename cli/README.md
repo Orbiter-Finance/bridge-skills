@@ -23,6 +23,7 @@ pnpm -C . run dev -- --help
 - `ORBITER_API_KEY` (optional)
 - `ORBITER_RPC_MAP` (optional, JSON string mapping chain ID to RPC URL)
 - `ORBITER_RPC_MAP_PATH` (optional, default reads `rpc-map.json` at repo root)
+- `ORBITER_RPC_MAP_URL` (optional, default `https://cdn.orbiter.finance/config/chains-explore.json`)
 - `ORBITER_PRIVATE_KEY` (optional, only used for local signing)
 
 ## Common Commands

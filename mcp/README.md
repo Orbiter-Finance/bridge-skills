@@ -15,6 +15,7 @@ pnpm -C . run dev
 - `ORBITER_API_KEY` (optional)
 - `ORBITER_RPC_MAP` (optional, JSON string mapping chain ID to RPC URL)
 - `ORBITER_RPC_MAP_PATH` (optional, default reads `rpc-map.json` at repo root)
+- `ORBITER_RPC_MAP_URL` (optional, default `https://cdn.orbiter.finance/config/chains-explore.json`)
 
 ## Tools
 - `orbiter_chains`
