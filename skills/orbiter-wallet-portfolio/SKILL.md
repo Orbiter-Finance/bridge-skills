@@ -1,3 +1,8 @@
+---
+name: orbiter-wallet-portfolio
+description: Deprecated: cross-chain portfolio is not available from public API.
+---
+
 # Orbiter Wallet Portfolio (Deprecated)
 
 The public API does not provide cross-chain portfolio aggregation.

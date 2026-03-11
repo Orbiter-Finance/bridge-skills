@@ -1,3 +1,8 @@
+---
+name: orbiter-sign-template
+description: Generate a signable transaction template with optional RPC fields.
+---
+
 # Orbiter Sign Template
 
 Generate a signable transaction template (nonce and gas/fee fields can be filled from RPC).

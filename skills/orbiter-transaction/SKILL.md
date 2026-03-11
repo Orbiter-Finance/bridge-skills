@@ -1,3 +1,8 @@
+---
+name: orbiter-transaction
+description: Query a cross-chain transaction by hash.
+---
+
 # Orbiter Transaction
 
 Query cross-chain transaction status and results by transaction hash.

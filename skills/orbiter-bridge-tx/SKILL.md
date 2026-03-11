@@ -1,3 +1,8 @@
+---
+name: orbiter-bridge-tx
+description: Derive the first transaction step from quote input for signing.
+---
+
 # Orbiter Bridge Tx
 
 Derive the first transaction step from quote input so it can be signed and broadcast directly.

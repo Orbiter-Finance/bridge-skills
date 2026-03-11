@@ -1,3 +1,8 @@
+---
+name: orbiter-bridge-flow
+description: One-click flow combining quote, tx build, and optional simulation (no signing/broadcast).
+---
+
 # Orbiter Bridge Flow
 
 A one-click flow that combines quote, tx build, and optional simulation. Does not include signing or broadcasting.

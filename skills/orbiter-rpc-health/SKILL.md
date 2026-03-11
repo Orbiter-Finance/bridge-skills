@@ -1,3 +1,8 @@
+---
+name: orbiter-rpc-health
+description: Check RPC availability, chain id, and latency.
+---
+
 # Orbiter RPC Health
 
 Check RPC availability and whether the chain ID matches.

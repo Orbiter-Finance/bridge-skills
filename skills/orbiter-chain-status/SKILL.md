@@ -1,3 +1,8 @@
+---
+name: orbiter-chain-status
+description: Deprecated: chain status placeholder; use orbiter_chains for lists.
+---
+
 # Orbiter Chain Status (Deprecated)
 
 The public API does not provide a chain congestion status endpoint. Use `orbiter_chains` for a basic chain list.

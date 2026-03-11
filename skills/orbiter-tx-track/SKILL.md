@@ -1,3 +1,8 @@
+---
+name: orbiter-tx-track
+description: Deprecated: track tx status via orbiter_transaction.
+---
+
 # Orbiter Tx Track (Deprecated)
 
 The public API does not provide order ID queries. Use `orbiter_transaction` with a transaction hash.

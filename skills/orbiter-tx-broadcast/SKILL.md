@@ -1,3 +1,8 @@
+---
+name: orbiter-tx-broadcast
+description: Broadcast a signed tx via eth_sendRawTransaction.
+---
+
 # Orbiter Tx Broadcast
 
 Broadcast a signed transaction via JSON-RPC `eth_sendRawTransaction`.

@@ -1,3 +1,8 @@
+---
+name: orbiter-chains
+description: List supported chains and basic metadata.
+---
+
 # Orbiter Chains
 
 List supported chains and basic metadata for chain selection.

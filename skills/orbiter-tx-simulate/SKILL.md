@@ -1,3 +1,8 @@
+---
+name: orbiter-tx-simulate
+description: Preflight a tx via eth_estimateGas with optional revert reason.
+---
+
 # Orbiter Tx Simulate
 
 Preflight a transaction via JSON-RPC `eth_estimateGas`.

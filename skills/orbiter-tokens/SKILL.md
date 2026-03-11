@@ -1,3 +1,8 @@
+---
+name: orbiter-tokens
+description: Query tokens by chain and symbol/address prefix.
+---
+
 # Orbiter Tokens
 
 Query token lists by chain and symbol/address prefix for discovery or validation.

@@ -1,3 +1,8 @@
+---
+name: orbiter-sign-broadcast
+description: Sign a tx template locally and broadcast to the chain.
+---
+
 # Orbiter Sign Broadcast
 
 Sign a transaction template with a local private key and broadcast it to the chain.
