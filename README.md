@@ -37,6 +37,26 @@ pnpm -C cli run dev -- rpc health --chain 42161
 pnpm -C cli run dev -- rpc health --all
 ```
 
+## Installation
+
+### One Command
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Orbiter-Finance/bridge-skills/main/install.sh | sh
+```
+
+### Skills CLI (If You Use It)
+
+```bash
+npx skills add Orbiter-Finance/bridge-skills
+```
+
+### Client-Specific Guides
+- [Codex](.codex/INSTALL.md)
+- [OpenCode](.opencode/INSTALL.md)
+- [Cursor](.cursor-plugin/INSTALL.md)
+- [Claude](.claude-plugin/INSTALL.md)
+
 ## MCP Tools
 - `orbiter_chains`
 - `orbiter_tokens`
