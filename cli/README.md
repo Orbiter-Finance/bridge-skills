@@ -49,6 +49,11 @@ orbiter bridge sign-broadcast --template-file ./template.json --chain-id 42161 -
 orbiter rpc health --chain 42161
 ```
 
+## Sign-Broadcast Auto Enrichment
+
+If the template is missing `nonce`/`gasLimit`/fee fields, `sign-broadcast` will auto-enrich them
+when `--rpc-url` (or `--chain`) is provided. If `from` is missing, it is derived from the private key.
+
 ## Publish
 
 ```bash

@@ -487,12 +487,37 @@ bridge
   .action(async (opts) => {
     const template = await readTemplate(opts.template ?? opts.templateFile);
     const privateKey = requirePrivateKey(opts.privateKey);
+    const wallet = new Wallet(privateKey);
     const chainId =
       template.chainId ?? (opts.chainId ? String(opts.chainId) : undefined);
     if (!chainId) {
       throw new Error("Missing chainId in template or --chain-id");
     }
-    const wallet = new Wallet(privateKey);
+    if (template.from && template.from.toLowerCase() !== wallet.address.toLowerCase()) {
+      throw new Error("Template from does not match the private key address.");
+    }
+    const fromAddress = template.from ?? wallet.address;
+    const needsEnrich =
+      !template.nonce ||
+      (!template.gasLimit &&
+        !template.gas &&
+        !template.gasPrice &&
+        (!template.maxFeePerGas || !template.maxPriorityFeePerGas));
+    if (needsEnrich) {
+      const rpcUrl = await resolveRpcUrl({
+        rpcUrl: opts.rpcUrl,
+        chainId: opts.chain ?? chainId
+      });
+      const enriched = await buildSignTemplate({
+        rpcUrl,
+        from: fromAddress,
+        to: template.to,
+        data: template.data,
+        value: template.value,
+        gasLimit: template.gasLimit
+      });
+      Object.assign(template, enriched);
+    }
     const signedTx = await wallet.signTransaction({
       ...template,
       chainId: Number(chainId)
