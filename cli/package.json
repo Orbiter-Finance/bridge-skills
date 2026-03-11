@@ -1,0 +1,30 @@
+{
+  "name": "@orbiter-finance/cli",
+  "version": "0.1.1",
+  "type": "module",
+  "bin": {
+    "orbiter": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "postbuild": "node ../scripts/add-shebang.mjs dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@orbiter-finance/orbiter-api": "workspace:*",
+    "commander": "^12.1.0",
+    "ethers": "^6.16.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.5.4"
+  }
+}

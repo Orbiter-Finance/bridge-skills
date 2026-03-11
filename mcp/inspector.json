@@ -1,0 +1,8 @@
+{
+  "command": "tsx",
+  "args": ["src/server.ts"],
+  "env": {
+    "ORBITER_API_BASE_URL": "https://openapi.orbiter.finance",
+    "ORBITER_API_KEY": "demo"
+  }
+}

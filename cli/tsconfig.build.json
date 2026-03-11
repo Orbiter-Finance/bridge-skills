@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@orbiter-finance/orbiter-api": ["../packages-finance/orbiter-api/dist/index.d.ts"]
+    }
+  }
+}

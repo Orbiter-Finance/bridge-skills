@@ -1,0 +1,18 @@
+{
+  "name": "@orbiter-finance/bridge-skills",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "mcp",
+    "cli"
+  ],
+  "scripts": {
+    "build": "pnpm -r run build",
+    "dev:mcp": "pnpm -C mcp run dev",
+    "dev:cli": "pnpm -C cli run dev"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "ethers": "^6.16.0"
+  }
+}
