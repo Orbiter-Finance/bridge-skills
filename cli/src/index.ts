@@ -14,11 +14,12 @@ import {
   rpcGasPrice,
   rpcGetTransactionCount,
   rpcMaxPriorityFeePerGas,
+  resolveRpcUrl,
+  loadRpcMap,
   rpcSendRawTransaction,
   toHexQuantity,
   withHexValue
 } from "@orbiter-finance/orbiter-api";
-import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { inspect } from "node:util";
@@ -51,117 +52,9 @@ function getClient(): OrbiterClient {
   });
 }
 
-const defaultRpcMapUrl =
-  process.env.ORBITER_RPC_MAP_URL ?? "https://cdn.orbiter.finance/config/chains-explore.json";
-
-type RpcMapValue = string | string[];
-
-function normalizeRpcUrl(value: RpcMapValue | undefined): string | undefined {
-  if (typeof value === "string") return value;
-  if (Array.isArray(value)) {
-    return value.find((entry) => typeof entry === "string" && entry.length > 0);
-  }
-  return undefined;
-}
-
-async function resolveRpcUrl(opts: {
-  rpcUrl?: string;
-  chainId?: string;
-  fallbackChainId?: string;
-}): Promise<string> {
-  if (opts.rpcUrl) return opts.rpcUrl;
-  const chainId = opts.chainId ?? opts.fallbackChainId;
-  if (!chainId) {
-    throw new Error("Missing --rpc-url or chain id for rpc-map lookup");
-  }
-  if (process.env.ORBITER_RPC_MAP) {
-    const map = JSON.parse(process.env.ORBITER_RPC_MAP) as Record<string, RpcMapValue>;
-    const url = normalizeRpcUrl(map[chainId]);
-    if (url) return url;
-  }
-  const mapPath = process.env.ORBITER_RPC_MAP_PATH ?? findRpcMapPath();
-  try {
-    if (mapPath) {
-      const map = JSON.parse(await readFile(mapPath, "utf8")) as Record<string, RpcMapValue>;
-      const url = normalizeRpcUrl(map[chainId]);
-      if (url) return url;
-    }
-  } catch {
-    // ignore and fall through
-  }
-  try {
-    const map = await fetchRpcMapFromUrl(defaultRpcMapUrl);
-    const url = normalizeRpcUrl(map[chainId]);
-    if (url) return url;
-  } catch {
-    // ignore and fall through
-  }
-  throw new Error(`RPC URL not found for chain ${chainId}`);
-}
-
-async function fetchRpcMapFromUrl(url: string): Promise<Record<string, RpcMapValue>> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
-  try {
-    const res = await fetch(url, { signal: controller.signal });
-    if (!res.ok) {
-      throw new Error(`RPC map fetch failed: ${res.status}`);
-    }
-    const json = (await res.json()) as Array<{ chainId?: string; rpc?: RpcMapValue }>;
-    const map: Record<string, RpcMapValue> = {};
-    for (const entry of json) {
-      if (entry?.chainId && entry?.rpc) {
-        map[entry.chainId] = entry.rpc;
-      }
-    }
-    return map;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-async function loadRpcMap(): Promise<Record<string, string>> {
-  const raw =
-    process.env.ORBITER_RPC_MAP ??
-    (await (async () => {
-      const mapPath = process.env.ORBITER_RPC_MAP_PATH ?? findRpcMapPath();
-      if (!mapPath) {
-        return "";
-      }
-      return readFile(mapPath, "utf8");
-    })());
-  if (!raw) {
-    const remote = await fetchRpcMapFromUrl(defaultRpcMapUrl);
-    return normalizeRpcMap(remote);
-  }
-  const parsed = JSON.parse(raw) as Record<string, RpcMapValue>;
-  return normalizeRpcMap(parsed);
-}
-
-function normalizeRpcMap(parsed: Record<string, RpcMapValue>): Record<string, string> {
-  const normalized: Record<string, string> = {};
-  for (const [chainId, value] of Object.entries(parsed)) {
-    const url = normalizeRpcUrl(value);
-    if (url) normalized[chainId] = url;
-  }
-  return normalized;
-}
-
 function normalizeChainIdHex(hex: string): string {
   if (!hex.startsWith("0x")) return hex;
   return String(parseInt(hex, 16));
-}
-
-function findRpcMapPath(): string | null {
-  let dir = process.cwd();
-  while (true) {
-    const candidate = resolve(dir, "rpc-map.json");
-    if (existsSync(candidate)) return candidate;
-    const parent = resolve(dir, "..");
-    if (parent === dir) break;
-    dir = parent;
-  }
-  return null;
 }
 
 async function buildSignTemplate(opts: {

@@ -5,6 +5,7 @@ export type ApiResponse<T> = {
     result: T;
     requestId?: string;
 };
+export type RpcMapValue = string | string[];
 export type ChainInfo = {
     chainId: string;
     internalId: number;
@@ -157,4 +158,24 @@ export declare function rpcMaxPriorityFeePerGas(rpcUrl: string): Promise<string>
 export declare function rpcFeeHistory(rpcUrl: string, blockCount: number, newestBlock?: "latest" | "pending" | "earliest", rewardPercentiles?: number[]): Promise<{
     baseFeePerGas?: string[];
 }>;
+export declare function normalizeRpcUrl(value: RpcMapValue | undefined): string | undefined;
+export declare function extractRpcMapFromChainsExplore(json: Array<{
+    chainId?: string;
+    rpc?: RpcMapValue;
+}>): Record<string, RpcMapValue>;
+export declare function fetchRpcMapFromUrl(url: string, timeoutMs?: number): Promise<Record<string, RpcMapValue>>;
+export declare function normalizeRpcMap(parsed: Record<string, RpcMapValue>): Record<string, string>;
+export declare function loadRpcMap(opts?: {
+    rpcMap?: Record<string, RpcMapValue>;
+    rpcMapPath?: string;
+    rpcMapUrl?: string;
+}): Promise<Record<string, string>>;
+export declare function resolveRpcUrl(opts: {
+    rpcUrl?: string;
+    chainId?: string;
+    fallbackChainId?: string;
+    rpcMap?: Record<string, RpcMapValue>;
+    rpcMapPath?: string;
+    rpcMapUrl?: string;
+}): Promise<string>;
 //# sourceMappingURL=index.d.ts.map
