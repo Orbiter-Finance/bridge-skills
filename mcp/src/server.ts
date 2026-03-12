@@ -24,6 +24,7 @@ import {
   toHexQuantity,
   withHexValue
 } from "@orbiter-finance/orbiter-api";
+import { Wallet } from "ethers";
 
 const baseUrl = process.env.ORBITER_API_BASE_URL ?? "https://openapi.orbiter.finance";
 
@@ -215,7 +216,9 @@ server.registerTool(
       rpcUrl: z.string().optional(),
       chainId: z.string().optional(),
       simulate: z.boolean().optional(),
-      callOnFail: z.boolean().optional()
+      callOnFail: z.boolean().optional(),
+      autoApprove: z.boolean().optional(),
+      privateKey: z.string().optional()
     })
   },
   async (input) => {
@@ -291,6 +294,28 @@ server.registerTool(
             amount: parsed.amount.toString(),
             tx: approveTx
           };
+          if (approveRequired && input.autoApprove) {
+            if (!input.privateKey) {
+              throw new Error("Missing privateKey for autoApprove");
+            }
+            const wallet = new Wallet(input.privateKey);
+            if (wallet.address.toLowerCase() !== input.userAddress.toLowerCase()) {
+              throw new Error("privateKey does not match userAddress");
+            }
+            const template = await buildSignTemplate({
+              rpcUrl: url,
+              from: input.userAddress,
+              to: approveTx.to,
+              data: approveTx.data,
+              value: approveTx.value
+            });
+            const signedApprove = await wallet.signTransaction({
+              ...template,
+              chainId: Number(input.sourceChainId)
+            });
+            const approveTxHash = await rpcSendRawTransaction(url, signedApprove);
+            approveInfo = { ...approveInfo, approveTxHash };
+          }
         }
       } catch {
         // ignore allowance failures

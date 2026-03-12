@@ -177,7 +177,6 @@ export declare function fetchRpcMapFromUrl(url: string, timeoutMs?: number): Pro
 export declare function normalizeRpcMap(parsed: Record<string, RpcMapValue>): Record<string, string>;
 export declare function loadRpcMap(opts?: {
     rpcMap?: Record<string, RpcMapValue>;
-    rpcMapPath?: string;
     rpcMapUrl?: string;
 }): Promise<Record<string, string>>;
 export declare function resolveRpcUrl(opts: {
@@ -185,7 +184,6 @@ export declare function resolveRpcUrl(opts: {
     chainId?: string;
     fallbackChainId?: string;
     rpcMap?: Record<string, RpcMapValue>;
-    rpcMapPath?: string;
     rpcMapUrl?: string;
 }): Promise<string>;
 //# sourceMappingURL=index.d.ts.map

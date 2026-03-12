@@ -48,6 +48,9 @@ importers:
       '@orbiter-finance/orbiter-api':
         specifier: workspace:*
         version: link:../packages/orbiter-api
+      ethers:
+        specifier: ^6.16.0
+        version: 6.16.0
       zod:
         specifier: ^3.23.8
         version: 3.25.76

@@ -13,9 +13,6 @@ pnpm -C . run dev
 ## Environment Variables
 - `ORBITER_API_BASE_URL` (optional, default `https://openapi.orbiter.finance`)
 - `ORBITER_API_KEY` (optional)
-- `ORBITER_RPC_MAP` (optional, JSON string mapping chain ID to RPC URL)
-- `ORBITER_RPC_MAP_PATH` (optional, default reads `rpc-map.json` at repo root)
-- `ORBITER_RPC_MAP_URL` (optional, default `https://cdn.orbiter.finance/config/chains-explore.json`)
 
 ## Tools
 - `orbiter_chains`
@@ -26,9 +23,13 @@ pnpm -C . run dev
 - `orbiter_sign_template`
 - `orbiter_sign_broadcast`
 - `orbiter_transaction`
+- `orbiter_wallet_portfolio`
 - `orbiter_tx_simulate`
 - `orbiter_tx_broadcast`
 - `orbiter_rpc_health`
+
+## Notes
+- `orbiter_bridge_flow` can optionally auto-approve when `autoApprove` and `privateKey` are provided.
 
 ## MCP Inspector
 

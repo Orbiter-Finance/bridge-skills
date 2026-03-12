@@ -4,6 +4,7 @@ import {
   OrbiterClient,
   buildSignableTx,
   extractApproveQuoteTx,
+  extractQuoteTxByAction,
   extractBridgeQuoteTx,
   extractFirstQuoteTx,
   erc20Allowance,
@@ -47,6 +48,16 @@ function reportError(err: unknown): void {
   if (err instanceof Error && err.stack) {
     console.error(err.stack);
   }
+  if (err instanceof Error) {
+    const msg = err.message ?? "";
+    if (msg.includes("RPC URL not found")) {
+      console.error("Hint: provide --rpc-url or --chain.");
+    } else if (msg.includes("intrinsic gas too low")) {
+      console.error("Hint: gasLimit is too low. Use sign-template or pass --rpc-url for auto-enrich.");
+    } else if (msg.toLowerCase().includes("insufficient token allowance")) {
+      console.error("Hint: approve is required. Use --auto-approve or send approve tx first.");
+    }
+  }
 }
 
 process.on("unhandledRejection", (err) => {
@@ -70,6 +81,33 @@ function getClient(): OrbiterClient {
 function normalizeChainIdHex(hex: string): string {
   if (!hex.startsWith("0x")) return hex;
   return String(parseInt(hex, 16));
+}
+
+function parseAmountToBaseUnits(amountHuman: string, decimals: number): string {
+  const trimmed = amountHuman.trim();
+  if (!trimmed) throw new Error("Missing amount value");
+  if (!/^\d+(\.\d+)?$/.test(trimmed)) {
+    throw new Error("Invalid amount format");
+  }
+  const [intPart, fracPart = ""] = trimmed.split(".");
+  const frac = fracPart.padEnd(decimals, "0").slice(0, decimals);
+  const combined = `${intPart}${frac}`.replace(/^0+/, "") || "0";
+  return combined;
+}
+
+function resolveAmount(opts: { amount?: string; amountHuman?: string; amountDecimals?: string }): string {
+  if (opts.amount) return opts.amount;
+  if (!opts.amountHuman) {
+    throw new Error("Missing --amount or --amount-human");
+  }
+  if (!opts.amountDecimals) {
+    throw new Error("Missing --amount-decimals when using --amount-human");
+  }
+  const decimals = Number(opts.amountDecimals);
+  if (!Number.isFinite(decimals) || decimals < 0 || decimals > 36) {
+    throw new Error("Invalid --amount-decimals");
+  }
+  return parseAmountToBaseUnits(opts.amountHuman, decimals);
 }
 
 async function buildSignTemplate(opts: {
@@ -165,21 +203,25 @@ bridge
   .requiredOption("--dest-chain <id>", "Destination chain id")
   .requiredOption("--source-token <addr>", "Source token address")
   .requiredOption("--dest-token <addr>", "Destination token address")
-  .requiredOption("--amount <amount>", "Amount to send")
+  .option("--amount <amount>", "Amount in base units")
+  .option("--amount-human <amount>", "Human-readable amount (e.g. 0.0006)")
+  .option("--amount-decimals <decimals>", "Decimals for amount-human")
   .requiredOption("--user <address>", "User wallet address")
   .requiredOption("--recipient <address>", "Recipient address")
   .option("--slippage <number>", "Slippage tolerance, e.g. 0.02")
   .option("--fee-recipient <address>", "Fee recipient address")
   .option("--fee-percent <number>", "Fee percent, e.g. 0.1")
   .option("--channel <string>", "Dapp name or commission wallet address")
+  .option("--format <format>", "Output format: json|summary", "json")
   .action(async (opts) => {
     const client = getClient();
+    const amount = resolveAmount(opts);
     const result = await client.quote({
       sourceChainId: String(opts.sourceChain),
       destChainId: String(opts.destChain),
       sourceToken: opts.sourceToken,
       destToken: opts.destToken,
-      amount: opts.amount,
+      amount,
       userAddress: opts.user,
       targetRecipient: opts.recipient,
       slippage: opts.slippage ? Number(opts.slippage) : undefined,
@@ -189,6 +231,24 @@ bridge
           : undefined,
       channel: opts.channel
     });
+    if (opts.format === "summary") {
+      const steps = result.result?.steps ?? [];
+      const actions = steps.map((s) => s.action).join(" -> ");
+      console.log(
+        JSON.stringify(
+          {
+            actions,
+            sourceAmount: result.result?.details?.sourceTokenAmount,
+            destAmount: result.result?.details?.destTokenAmount,
+            minDestAmount: result.result?.details?.minDestTokenAmount,
+            fees: result.result?.fees
+          },
+          null,
+          2
+        )
+      );
+      return;
+    }
     console.log(JSON.stringify(result, null, 2));
   });
 
@@ -198,21 +258,25 @@ bridge
   .requiredOption("--dest-chain <id>", "Destination chain id")
   .requiredOption("--source-token <addr>", "Source token address")
   .requiredOption("--dest-token <addr>", "Destination token address")
-  .requiredOption("--amount <amount>", "Amount to send")
+  .option("--amount <amount>", "Amount in base units")
+  .option("--amount-human <amount>", "Human-readable amount (e.g. 0.0006)")
+  .option("--amount-decimals <decimals>", "Decimals for amount-human")
   .requiredOption("--user <address>", "User wallet address")
   .requiredOption("--recipient <address>", "Recipient address")
   .option("--slippage <number>", "Slippage tolerance, e.g. 0.02")
   .option("--fee-recipient <address>", "Fee recipient address")
   .option("--fee-percent <number>", "Fee percent, e.g. 0.1")
   .option("--channel <string>", "Dapp name or commission wallet address")
+  .option("--action <action>", "Select action: bridge|swap|approve", "bridge")
   .action(async (opts) => {
     const client = getClient();
+    const amount = resolveAmount(opts);
     const quote = await client.quote({
       sourceChainId: String(opts.sourceChain),
       destChainId: String(opts.destChain),
       sourceToken: opts.sourceToken,
       destToken: opts.destToken,
-      amount: opts.amount,
+      amount,
       userAddress: opts.user,
       targetRecipient: opts.recipient,
       slippage: opts.slippage ? Number(opts.slippage) : undefined,
@@ -222,7 +286,9 @@ bridge
           : undefined,
       channel: opts.channel
     });
-    const tx = extractFirstQuoteTx(quote);
+    let tx = extractBridgeQuoteTx(quote) ?? extractFirstQuoteTx(quote);
+    if (opts.action === "swap") tx = extractQuoteTxByAction(quote, "swap") ?? tx;
+    if (opts.action === "approve") tx = extractApproveQuoteTx(quote) ?? tx;
     console.log(JSON.stringify({ tx, quote }, null, 2));
   });
 
@@ -232,7 +298,9 @@ bridge
   .requiredOption("--dest-chain <id>", "Destination chain id")
   .requiredOption("--source-token <addr>", "Source token address")
   .requiredOption("--dest-token <addr>", "Destination token address")
-  .requiredOption("--amount <amount>", "Amount to send")
+  .option("--amount <amount>", "Amount in base units")
+  .option("--amount-human <amount>", "Human-readable amount (e.g. 0.0006)")
+  .option("--amount-decimals <decimals>", "Decimals for amount-human")
   .requiredOption("--user <address>", "User wallet address")
   .requiredOption("--recipient <address>", "Recipient address")
   .option("--slippage <number>", "Slippage tolerance, e.g. 0.02")
@@ -245,14 +313,16 @@ bridge
   .option("--no-simulate", "Skip simulation")
   .option("--auto-approve", "Auto-broadcast ERC20 approve if allowance is insufficient")
   .option("--private-key <hex>", "Private key for auto-approve (use env ORBITER_PRIVATE_KEY)")
+  .option("--format <format>", "Output format: json|summary", "json")
   .action(async (opts) => {
     const client = getClient();
+    const amount = resolveAmount(opts);
     const quote = await client.quote({
       sourceChainId: String(opts.sourceChain),
       destChainId: String(opts.destChain),
       sourceToken: opts.sourceToken,
       destToken: opts.destToken,
-      amount: opts.amount,
+      amount,
       userAddress: opts.user,
       targetRecipient: opts.recipient,
       slippage: opts.slippage ? Number(opts.slippage) : undefined,
@@ -353,6 +423,24 @@ bridge
         }
       }
     }
+    if (opts.format === "summary") {
+      const steps = quote.result?.steps ?? [];
+      const actions = steps.map((s) => s.action).join(" -> ");
+      console.log(
+        JSON.stringify(
+          {
+            actions,
+            approve: approveInfo,
+            sourceAmount: quote.result?.details?.sourceTokenAmount,
+            destAmount: quote.result?.details?.destTokenAmount,
+            minDestAmount: quote.result?.details?.minDestTokenAmount
+          },
+          null,
+          2
+        )
+      );
+      return;
+    }
     console.log(
       JSON.stringify({ quote, signableTx, approve: approveInfo, simulate: simulateResult }, null, 2)
     );
@@ -364,7 +452,9 @@ bridge
   .requiredOption("--dest-chain <id>", "Destination chain id")
   .requiredOption("--source-token <addr>", "Source token address")
   .requiredOption("--dest-token <addr>", "Destination token address")
-  .requiredOption("--amount <amount>", "Amount to send")
+  .option("--amount <amount>", "Amount in base units")
+  .option("--amount-human <amount>", "Human-readable amount (e.g. 0.0006)")
+  .option("--amount-decimals <decimals>", "Decimals for amount-human")
   .requiredOption("--user <address>", "User wallet address")
   .requiredOption("--recipient <address>", "Recipient address")
   .option("--slippage <number>", "Slippage tolerance, e.g. 0.02")
@@ -375,12 +465,13 @@ bridge
   .option("--chain <id>", "Chain id for rpc-map lookup (optional)")
   .action(async (opts) => {
     const client = getClient();
+    const amount = resolveAmount(opts);
     const quote = await client.quote({
       sourceChainId: String(opts.sourceChain),
       destChainId: String(opts.destChain),
       sourceToken: opts.sourceToken,
       destToken: opts.destToken,
-      amount: opts.amount,
+      amount,
       userAddress: opts.user,
       targetRecipient: opts.recipient,
       slippage: opts.slippage ? Number(opts.slippage) : undefined,
@@ -442,6 +533,7 @@ bridge
   .option("--chain-id <id>", "Chain id for signing")
   .option("--rpc-url <url>", "JSON-RPC URL")
   .option("--chain <id>", "Chain id for rpc-map lookup")
+  .option("--skip-chain-check", "Skip rpc chainId validation")
   .action(async (opts) => {
     const template = await readTemplate(opts.template ?? opts.templateFile);
     const privateKey = requirePrivateKey(opts.privateKey);
@@ -487,6 +579,15 @@ bridge
       rpcUrl: opts.rpcUrl,
       chainId: opts.chain ?? chainId
     });
+    if (!opts.skipChainCheck) {
+      const rpcChain = await rpcChainId(rpcUrl);
+      const rpcChainValue = rpcChain.startsWith("0x")
+        ? String(parseInt(rpcChain, 16))
+        : rpcChain;
+      if (String(rpcChainValue) !== String(chainId)) {
+        throw new Error(`RPC chainId ${rpcChainValue} does not match ${chainId}`);
+      }
+    }
     const txHash = await rpcSendRawTransaction(rpcUrl, signedTx);
     console.log(JSON.stringify({ txHash }, null, 2));
   });
@@ -498,7 +599,9 @@ bridge
   .requiredOption("--dest-chain <id>", "Destination chain id")
   .requiredOption("--source-token <addr>", "Source token address")
   .requiredOption("--dest-token <addr>", "Destination token address")
-  .requiredOption("--amount <amount>", "Amount to send")
+  .option("--amount <amount>", "Amount in base units")
+  .option("--amount-human <amount>", "Human-readable amount (e.g. 0.0006)")
+  .option("--amount-decimals <decimals>", "Decimals for amount-human")
   .requiredOption("--user <address>", "User wallet address")
   .requiredOption("--recipient <address>", "Recipient address")
   .option("--slippage <number>", "Slippage tolerance, e.g. 0.02")
@@ -513,12 +616,13 @@ bridge
   .option("--skip-transaction", "Skip transaction query")
   .action(async (opts) => {
     const client = getClient();
+    const amount = resolveAmount(opts);
     const quote = await client.quote({
       sourceChainId: String(opts.sourceChain),
       destChainId: String(opts.destChain),
       sourceToken: opts.sourceToken,
       destToken: opts.destToken,
-      amount: opts.amount,
+      amount,
       userAddress: opts.user,
       targetRecipient: opts.recipient,
       slippage: opts.slippage ? Number(opts.slippage) : undefined,
@@ -632,9 +736,14 @@ bridge
 program
   .command("chains")
   .description("List supported chains")
-  .action(async () => {
+  .option("--raw", "Print raw JSON response")
+  .action(async (opts) => {
     const client = getClient();
     const result = await client.chains();
+    if (opts.raw) {
+      console.log(JSON.stringify(result, null, 2));
+      return;
+    }
     const rows = (result.result ?? []).map((chain) => ({
       chainId: chain.chainId,
       name: chain.name,
@@ -650,22 +759,66 @@ program
   .description("Query tokens by chain and symbol/address prefix")
   .option("--chain <id>", "Chain id")
   .option("--prefix <string>", "Symbol or address prefix")
+  .option("--limit <n>", "Limit number of results")
+  .option("--bridgeable", "Only include bridgeable tokens")
+  .option("--raw", "Print raw JSON response")
   .action(async (opts) => {
     const client = getClient();
     const result = await client.tokens({
       chainId: opts.chain,
       addressOrPrefix: opts.prefix
     });
-    console.log(JSON.stringify(result, null, 2));
+    if (opts.raw) {
+      console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+    let items = Array.isArray((result as any).result) ? (result as any).result : [];
+    if (opts.bridgeable) {
+      items = items.filter((item: any) => item.isBridgeable);
+    }
+    if (opts.limit) {
+      const n = Number(opts.limit);
+      if (Number.isFinite(n) && n > 0) items = items.slice(0, n);
+    }
+    const rows = items.map((item: any) => ({
+      address: item.address,
+      symbol: item.symbol,
+      name: item.name,
+      decimals: item.decimals,
+      bridgeable: item.isBridgeable
+    }));
+    console.table(rows);
   });
 
 program
   .command("transaction")
   .description("Query a bridge transaction by hash")
   .requiredOption("--hash <hash>", "Transaction hash")
+  .option("--format <format>", "Output format: json|summary", "json")
   .action(async (opts) => {
     const client = getClient();
     const result = await client.transaction(opts.hash);
+    if (opts.format === "summary") {
+      const tx = (result as any).result ?? {};
+      console.log(
+        JSON.stringify(
+          {
+            hash: tx.hash,
+            status: tx.status,
+            opStatus: tx.opStatus,
+            chainId: tx.chainId,
+            targetChain: tx.targetChain,
+            amount: tx.amount,
+            targetAmount: tx.targetAmount,
+            symbol: tx.symbol,
+            targetSymbol: tx.targetSymbol
+          },
+          null,
+          2
+        )
+      );
+      return;
+    }
     console.log(JSON.stringify(result, null, 2));
   });
 

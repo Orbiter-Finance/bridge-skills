@@ -9,9 +9,6 @@ A toolkit skeleton for "one-click cross-chain" onboarding. Includes:
 ## Environment Variables
 - `ORBITER_API_BASE_URL` (optional, default `https://openapi.orbiter.finance`)
 - `ORBITER_API_KEY` (optional)
-- `ORBITER_RPC_MAP` (optional, JSON string mapping chain ID to RPC URL)
-- `ORBITER_RPC_MAP_PATH` (optional, default reads `rpc-map.json` at repo root)
-- `ORBITER_RPC_MAP_URL` (optional, default `https://cdn.orbiter.finance/config/chains-explore.json`)
 - `ORBITER_PRIVATE_KEY` (optional, only used for local signing in `bridge sign` / `bridge sign-broadcast`)
 
 Security note:
@@ -93,6 +90,9 @@ By default, reads `rpc-map.json` with a mapping from chain ID to RPC URL (values
   whether allowance is sufficient, plus the approve transaction data.
 - For swap-only routes, the first step is usually `action = "swap"`. For cross-chain swap, routes may include
   `swap` then `bridge`. Use `bridge flow` to see both the swap tx and the final signable bridge tx.
+- CLI supports `--amount-human` with `--amount-decimals` and `--format summary` for concise output.
+- `bridge tx` supports `--action swap|bridge|approve` to select the desired step.
+- `sign-broadcast` validates RPC chainId by default (disable with `--skip-chain-check`).
 
 ## MCP Smoke Tests
 ```bash

@@ -491,63 +491,12 @@ export function normalizeRpcMap(parsed: Record<string, RpcMapValue>): Record<str
   return normalized;
 }
 
-function getEnv(name: string): string | undefined {
-  if (typeof process === "undefined") return undefined;
-  return process.env?.[name];
-}
-
-function findRpcMapPath(): string | null {
-  if (typeof process === "undefined") return null;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { existsSync } = require("node:fs") as typeof import("node:fs");
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { resolve } = require("node:path") as typeof import("node:path");
-    let dir = process.cwd();
-    while (true) {
-      const candidate = resolve(dir, "rpc-map.json");
-      if (existsSync(candidate)) return candidate;
-      const parent = resolve(dir, "..");
-      if (parent === dir) break;
-      dir = parent;
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
-
-async function readFileUtf8(path: string): Promise<string> {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { readFile } = require("node:fs/promises") as typeof import("node:fs/promises");
-  return readFile(path, "utf8");
-}
-
 export async function loadRpcMap(opts?: {
   rpcMap?: Record<string, RpcMapValue>;
-  rpcMapPath?: string;
   rpcMapUrl?: string;
 }): Promise<Record<string, string>> {
-  const envMap = getEnv("ORBITER_RPC_MAP");
-  const envPath = getEnv("ORBITER_RPC_MAP_PATH");
-  const envUrl = getEnv("ORBITER_RPC_MAP_URL");
-
   if (opts?.rpcMap) return normalizeRpcMap(opts.rpcMap);
-  if (envMap) {
-    return normalizeRpcMap(JSON.parse(envMap) as Record<string, RpcMapValue>);
-  }
-
-  const mapPath = opts?.rpcMapPath ?? envPath ?? findRpcMapPath();
-  if (mapPath) {
-    try {
-      const raw = await readFileUtf8(mapPath);
-      return normalizeRpcMap(JSON.parse(raw) as Record<string, RpcMapValue>);
-    } catch {
-      // ignore and fall through
-    }
-  }
-
-  const url = opts?.rpcMapUrl ?? envUrl ?? defaultRpcMapUrl;
+  const url = opts?.rpcMapUrl ?? defaultRpcMapUrl;
   const remote = await fetchRpcMapFromUrl(url);
   return normalizeRpcMap(remote);
 }
@@ -557,7 +506,6 @@ export async function resolveRpcUrl(opts: {
   chainId?: string;
   fallbackChainId?: string;
   rpcMap?: Record<string, RpcMapValue>;
-  rpcMapPath?: string;
   rpcMapUrl?: string;
 }): Promise<string> {
   if (opts.rpcUrl) return opts.rpcUrl;
@@ -567,7 +515,6 @@ export async function resolveRpcUrl(opts: {
   }
   const map = await loadRpcMap({
     rpcMap: opts.rpcMap,
-    rpcMapPath: opts.rpcMapPath,
     rpcMapUrl: opts.rpcMapUrl
   });
   const url = map[chainId];

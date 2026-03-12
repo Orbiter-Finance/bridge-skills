@@ -27,6 +27,8 @@ A one-click flow that combines quote, tx build, approval check, and optional sim
 - `chainId` (string, optional)
 - `simulate` (boolean, optional)
 - `callOnFail` (boolean, optional)
+- `autoApprove` (boolean, optional)
+- `privateKey` (string, optional, required when autoApprove is true)
 
 ## Outputs
 - `quote`
@@ -38,6 +40,7 @@ A one-click flow that combines quote, tx build, approval check, and optional sim
   - `amount` (string)
   - `tx` (approve transaction)
 - `simulate`
+  - If `autoApprove` is true and allowance is insufficient, `approveTxHash` is included.
 
 ## Notes
 - If the route includes a swap, the `quote.steps` array will include a `swap` step.

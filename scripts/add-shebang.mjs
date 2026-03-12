@@ -1,13 +1,14 @@
 import { readFile, writeFile } from "node:fs/promises";
 
-const filePath = process.argv[2];
-if (!filePath) {
-  throw new Error("Missing file path");
+const [target] = process.argv.slice(2);
+if (!target) {
+  console.error("Usage: add-shebang.mjs <file>");
+  process.exit(1);
 }
 
-const content = await readFile(filePath, "utf8");
+const content = await readFile(target, "utf8");
 if (content.startsWith("#!/usr/bin/env node")) {
   process.exit(0);
 }
 
-await writeFile(filePath, `#!/usr/bin/env node\n${content}`, "utf8");
+await writeFile(target, `#!/usr/bin/env node\n${content}`);
