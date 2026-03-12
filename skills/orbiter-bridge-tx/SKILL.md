@@ -9,7 +9,7 @@ Derive the bridge transaction step from quote input so it can be signed and broa
 
 ## When to Use
 - You want tx data without parsing the `quote` response
-- You want the actual bridge tx (not the approve tx)
+- You want the actual bridge tx (not the approve or swap tx)
 
 ## Inputs
 - `sourceChainId` (string)

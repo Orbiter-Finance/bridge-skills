@@ -39,6 +39,10 @@ A one-click flow that combines quote, tx build, approval check, and optional sim
   - `tx` (approve transaction)
 - `simulate`
 
+## Notes
+- If the route includes a swap, the `quote.steps` array will include a `swap` step.
+- `signableTx` always points to the bridge step when available.
+
 ## CLI Example
 ```bash
 orbiter bridge flow \

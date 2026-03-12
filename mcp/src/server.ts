@@ -374,6 +374,23 @@ server.registerTool(
 );
 
 server.registerTool(
+  "orbiter_wallet_portfolio",
+  {
+    description: "Query a wallet portfolio by VM and address.",
+    inputSchema: z.object({
+      vm: z.string(),
+      address: z.string()
+    })
+  },
+  async ({ vm, address }) => {
+    const result = await client.walletPortfolio(vm, address);
+    return {
+      content: [{ type: "text", text: JSON.stringify(result) }]
+    };
+  }
+);
+
+server.registerTool(
   "orbiter_rpc_health",
   {
     description: "Check a JSON-RPC endpoint health via eth_chainId and client version.",

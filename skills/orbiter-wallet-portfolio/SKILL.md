@@ -1,24 +1,23 @@
 ---
 name: orbiter-wallet-portfolio
-description: Deprecated: cross-chain portfolio is not available from public API.
+description: Query wallet portfolio by VM type and address.
 ---
 
-# Orbiter Wallet Portfolio (Deprecated)
+# Orbiter Wallet Portfolio
 
-The public API does not provide cross-chain portfolio aggregation.
+Query wallet portfolio by VM type and address.
 
 ## When to Use
-- The user has not clarified asset sources
-- You need to show a cross-chain portfolio overview
+- You need a wallet asset overview by VM (e.g., EVM)
 
 ## Inputs
+- `vm` (string, e.g. `EVM`)
 - `address` (string)
 
 ## Outputs
-- `totalUsd`
-- `assets[]`
+- Portfolio data (as returned by the API)
 
 ## CLI Example
 ```bash
-orbiter portfolio --address 0xabc...
+orbiter portfolio --vm EVM --address 0xabc...
 ```

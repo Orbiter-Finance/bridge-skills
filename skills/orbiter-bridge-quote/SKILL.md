@@ -25,7 +25,7 @@ Get a cross-chain quote and optimal route. This is the first step for "one-click
 
 ## Outputs
 - `fees`
-- `steps` (includes approve + bridge when required)
+- `steps` (may include `approve`, `swap`, and `bridge` depending on route)
 - `details`
 
 ## Recommended Flow

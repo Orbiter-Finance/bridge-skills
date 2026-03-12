@@ -109,6 +109,7 @@ export type TransactionResult = {
 export type TransactionResponse = ApiResponse<TransactionResult>;
 export type ChainsResponse = ApiResponse<ChainInfo[]>;
 export type TokensResponse = ApiResponse<unknown>;
+export type WalletPortfolioResponse = ApiResponse<unknown>;
 
 export type OrbiterClientOptions = {
   baseUrl: string;
@@ -169,6 +170,10 @@ export class OrbiterClient {
 
   async transaction(hash: string): Promise<TransactionResponse> {
     return this.request("GET", `/transaction/${hash}`);
+  }
+
+  async walletPortfolio(vm: string, address: string): Promise<WalletPortfolioResponse> {
+    return this.request("GET", `/balances-api/${vm}/balances/${address}`);
   }
 
   private async request<T>(

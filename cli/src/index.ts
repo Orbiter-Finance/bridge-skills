@@ -669,6 +669,29 @@ program
     console.log(JSON.stringify(result, null, 2));
   });
 
+program
+  .command("portfolio")
+  .description("Query wallet portfolio by VM and address")
+  .requiredOption("--address <address>", "Wallet address")
+  .option("--vm <vm>", "VM type (default EVM)", "EVM")
+  .option("--raw", "Print raw JSON response")
+  .action(async (opts) => {
+    const client = getClient();
+    const result = await client.walletPortfolio(String(opts.vm), String(opts.address));
+    if (opts.raw) {
+      console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+    const items = Array.isArray((result as any).result) ? (result as any).result : [];
+    const rows = items.map((item: any) => ({
+      chainId: item.chainId,
+      symbol: item.symbol,
+      balance: item.balance,
+      usd: item.usd ?? item.totalUsd ?? ""
+    }));
+    console.table(rows);
+  });
+
 const rpc = program.command("rpc").description("RPC utilities");
 
 rpc

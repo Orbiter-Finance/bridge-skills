@@ -22,3 +22,4 @@ This folder contains MCP skill docs for Orbiter Finance tools. Each skill has it
 - Each `SKILL.md` is the single source of truth for that tool's behavior.
 - Inputs and outputs mirror MCP tool schemas.
 - CLI examples use the `orbiter` binary.
+- Quotes can include `approve`, `swap`, and `bridge` steps depending on the route.

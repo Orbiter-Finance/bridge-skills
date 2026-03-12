@@ -43,6 +43,9 @@ orbiter bridge flow --source-chain 42161 --dest-chain 8453 --source-token 0x0000
 # Auto-approve ERC20 (if allowance is insufficient)
 ORBITER_PRIVATE_KEY=... orbiter bridge flow --source-chain 42161 --dest-chain 8453 --source-token 0x... --dest-token 0x... --amount 1000000 --user 0xabc... --recipient 0xabc... --chain 42161 --auto-approve
 
+# Same-chain swap (ETH -> USDC on Arbitrum)
+orbiter bridge quote --source-chain 42161 --dest-chain 42161 --source-token 0x0000000000000000000000000000000000000000 --dest-token 0xaf88d065e77c8cc2239327c5edb3a432268e5831 --amount 600000000000000 --user 0xabc... --recipient 0xabc...
+
 # Sign template and broadcast
 orbiter bridge sign-template --source-chain 42161 --dest-chain 8453 --source-token 0x0000000000000000000000000000000000000000 --dest-token 0x0000000000000000000000000000000000000000 --amount 300000000000000 --user 0xabc... --recipient 0xabc... --chain 42161
 orbiter bridge sign --template-file ./template.json --chain-id 42161
@@ -50,6 +53,13 @@ orbiter bridge sign-broadcast --template-file ./template.json --chain-id 42161 -
 
 # RPC health
 orbiter rpc health --chain 42161
+```
+
+## Wallet Portfolio
+
+```bash
+orbiter portfolio --vm EVM --address 0xabc...
+orbiter portfolio --vm EVM --address 0xabc... --raw
 ```
 
 ## Sign-Broadcast Auto Enrichment

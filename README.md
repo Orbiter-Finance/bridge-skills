@@ -74,6 +74,7 @@ npx skills add Orbiter-Finance/bridge-skills
 - `orbiter_sign_template`
 - `orbiter_sign_broadcast`
 - `orbiter_transaction`
+- `orbiter_wallet_portfolio`
 - `orbiter_tx_simulate`
 - `orbiter_tx_broadcast`
 - `orbiter_rpc_health`
@@ -87,9 +88,11 @@ By default, reads `rpc-map.json` with a mapping from chain ID to RPC URL (values
 }
 ```
 
-## Notes on ERC20 Approve
-If the quote contains an `approve` step, `bridge flow` returns an `approve` object that reports
-whether allowance is sufficient, plus the approve transaction data.
+## Notes on ERC20 Approve and Swap
+- If the quote contains an `approve` step, `bridge flow` returns an `approve` object that reports
+  whether allowance is sufficient, plus the approve transaction data.
+- For swap-only routes, the first step is usually `action = "swap"`. For cross-chain swap, routes may include
+  `swap` then `bridge`. Use `bridge flow` to see both the swap tx and the final signable bridge tx.
 
 ## MCP Smoke Tests
 ```bash

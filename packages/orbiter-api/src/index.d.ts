@@ -101,6 +101,7 @@ export type TransactionResult = {
 export type TransactionResponse = ApiResponse<TransactionResult>;
 export type ChainsResponse = ApiResponse<ChainInfo[]>;
 export type TokensResponse = ApiResponse<unknown>;
+export type WalletPortfolioResponse = ApiResponse<unknown>;
 export type OrbiterClientOptions = {
     baseUrl: string;
     apiKey?: string;
@@ -132,6 +133,7 @@ export declare class OrbiterClient {
         addressOrPrefix?: string;
     }): Promise<TokensResponse>;
     transaction(hash: string): Promise<TransactionResponse>;
+    walletPortfolio(vm: string, address: string): Promise<WalletPortfolioResponse>;
     private request;
 }
 export declare function extractFirstQuoteTx(quote: QuoteResponse): QuoteTx | null;
