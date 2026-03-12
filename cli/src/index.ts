@@ -20,12 +20,23 @@ import {
   toHexQuantity,
   withHexValue
 } from "@orbiter-finance/orbiter-api";
+import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { inspect } from "node:util";
 import { Wallet } from "ethers";
 
 const program = new Command();
+
+function getCliVersion(): string {
+  try {
+    const raw = readFileSync(new URL("../package.json", import.meta.url), "utf8");
+    const parsed = JSON.parse(raw) as { version?: string };
+    return parsed.version ?? "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
 
 function reportError(err: unknown): void {
   console.error(inspect(err, { depth: 6, colors: false }));
@@ -140,7 +151,7 @@ function requirePrivateKey(cliKey?: string): string {
   return key;
 }
 
-program.name("orbiter").description("Orbiter Finance CLI").version("0.1.0");
+program.name("orbiter").description("Orbiter Finance CLI").version(getCliVersion());
 
 const bridge = program.command("bridge").description("Bridge operations");
 
