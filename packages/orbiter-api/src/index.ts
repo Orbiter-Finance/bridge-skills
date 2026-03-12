@@ -141,12 +141,14 @@ export class OrbiterApiError extends Error {
 
 export class OrbiterClient {
   private baseUrl: string;
+  private fallbackBaseUrl: string;
   private apiKey?: string;
   private timeoutMs: number;
   private strictResponse: boolean;
 
   constructor(opts: OrbiterClientOptions) {
     this.baseUrl = opts.baseUrl.replace(/\/+$/, "");
+    this.fallbackBaseUrl = "https://api.orbiter.finance";
     this.apiKey = opts.apiKey;
     this.timeoutMs = opts.timeoutMs ?? 15_000;
     this.strictResponse = opts.strictResponse ?? true;
@@ -181,69 +183,114 @@ export class OrbiterClient {
     path: string,
     body?: unknown
   ): Promise<T> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
-
     const headers: Record<string, string> = {
       "Content-Type": "application/json"
     };
     if (this.apiKey) headers["Authorization"] = `Bearer ${this.apiKey}`;
 
-    try {
-      const res = await fetch(`${this.baseUrl}${path}`, {
-        method,
-        headers,
-        body: method === "POST" ? JSON.stringify(body ?? {}) : undefined,
-        signal: controller.signal
-      });
-      const text = await res.text();
-      if (!res.ok) {
-        throw new OrbiterApiError(`Orbiter API error ${res.status}: ${text}`, {
-          status: "error",
-          httpStatus: res.status,
-          raw: text
-        });
-      }
-      const json = (text ? JSON.parse(text) : {}) as T;
-      if (typeof json === "object" && json && "status" in json) {
-        const status = (json as { status?: string }).status;
-        const message = (json as { message?: string }).message ?? "";
-        const requestId = (json as { requestId?: string }).requestId;
-        if (status === "error") {
-          throw new OrbiterApiError(`Orbiter API status error: ${message}`, {
-            status: "error",
-            httpStatus: res.status,
-            requestId,
-            raw: json
-          });
-        }
-        if (this.strictResponse && status !== "success") {
-          throw new OrbiterApiError("Unexpected API status", {
-            status: "error",
-            httpStatus: res.status,
-            requestId,
-            raw: json
-          });
-        }
-        if (this.strictResponse && !("result" in (json as object))) {
-          throw new OrbiterApiError("Missing result in API response", {
-            status: "error",
-            httpStatus: res.status,
-            requestId,
-            raw: json
-          });
-        }
-      } else if (this.strictResponse) {
-        throw new OrbiterApiError("Invalid API response shape", {
-          status: "error",
-          httpStatus: res.status,
-          raw: json
-        });
-      }
-      return json;
-    } finally {
-      clearTimeout(timeout);
+    const baseUrls = [this.baseUrl];
+    if (this.fallbackBaseUrl && this.fallbackBaseUrl !== this.baseUrl) {
+      baseUrls.push(this.fallbackBaseUrl);
     }
+
+    let lastError: unknown;
+    for (let baseIndex = 0; baseIndex < baseUrls.length; baseIndex += 1) {
+      const baseUrl = baseUrls[baseIndex];
+      const maxAttempts = 3;
+      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+        try {
+          const res = await fetch(`${baseUrl}${path}`, {
+            method,
+            headers,
+            body: method === "POST" ? JSON.stringify(body ?? {}) : undefined,
+            signal: controller.signal
+          });
+          const text = await res.text();
+          if (!res.ok) {
+            throw new OrbiterApiError(`Orbiter API error ${res.status}: ${text}`, {
+              status: "error",
+              httpStatus: res.status,
+              raw: text
+            });
+          }
+          const json = (text ? JSON.parse(text) : {}) as T;
+          if (typeof json === "object" && json && "status" in json) {
+            const status = (json as { status?: string }).status;
+            const message = (json as { message?: string }).message ?? "";
+            const requestId = (json as { requestId?: string }).requestId;
+            if (status === "error") {
+              throw new OrbiterApiError(`Orbiter API status error: ${message}`, {
+                status: "error",
+                httpStatus: res.status,
+                requestId,
+                raw: json
+              });
+            }
+            if (this.strictResponse && status !== "success") {
+              throw new OrbiterApiError("Unexpected API status", {
+                status: "error",
+                httpStatus: res.status,
+                requestId,
+                raw: json
+              });
+            }
+            if (this.strictResponse && !("result" in (json as object))) {
+              throw new OrbiterApiError("Missing result in API response", {
+                status: "error",
+                httpStatus: res.status,
+                requestId,
+                raw: json
+              });
+            }
+          } else if (this.strictResponse) {
+            throw new OrbiterApiError("Invalid API response shape", {
+              status: "error",
+              httpStatus: res.status,
+              raw: json
+            });
+          }
+          return json;
+        } catch (error) {
+          lastError = error;
+          const shouldRetry = this.shouldRetry(error);
+          const isLastAttempt = attempt === maxAttempts;
+          if (!shouldRetry || isLastAttempt) break;
+          const delayMs = this.backoffDelayMs(attempt);
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        } finally {
+          clearTimeout(timeout);
+        }
+      }
+    }
+
+    throw lastError;
+  }
+
+  private shouldRetry(error: unknown): boolean {
+    if (error instanceof OrbiterApiError) {
+      const status = error.httpStatus ?? 0;
+      return status >= 500 || status === 429;
+    }
+    if (error && typeof error === "object") {
+      const err = error as { name?: string; code?: string; message?: string };
+      if (err.name === "AbortError") return true;
+      if (err.code === "UND_ERR_CONNECT_TIMEOUT") return true;
+      if (err.code === "UND_ERR_HEADERS_TIMEOUT") return true;
+      if (err.code === "UND_ERR_BODY_TIMEOUT") return true;
+      if (err.message && /fetch failed/i.test(err.message)) return true;
+      if (err.message && /timeout/i.test(err.message)) return true;
+    }
+    return false;
+  }
+
+  private backoffDelayMs(attempt: number): number {
+    const base = 400;
+    const max = 5_000;
+    const expo = Math.min(max, base * Math.pow(2, attempt - 1));
+    const jitter = Math.floor(Math.random() * 200);
+    return expo + jitter;
   }
 }
 
