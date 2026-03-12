@@ -3,7 +3,11 @@ import { Command } from "commander";
 import {
   OrbiterClient,
   buildSignableTx,
+  extractApproveQuoteTx,
+  extractBridgeQuoteTx,
   extractFirstQuoteTx,
+  erc20Allowance,
+  parseApproveData,
   fromHexQuantity,
   parseRevertReason,
   rpcChainId,
@@ -239,6 +243,8 @@ bridge
   .option("--chain <id>", "Chain id for rpc-map lookup (for simulate)")
   .option("--call-on-fail", "Run eth_call to extract revert reason on failure")
   .option("--no-simulate", "Skip simulation")
+  .option("--auto-approve", "Auto-broadcast ERC20 approve if allowance is insufficient")
+  .option("--private-key <hex>", "Private key for auto-approve (use env ORBITER_PRIVATE_KEY)")
   .action(async (opts) => {
     const client = getClient();
     const quote = await client.quote({
@@ -257,6 +263,8 @@ bridge
       channel: opts.channel
     });
     const signableTx = buildSignableTx(quote, String(opts.sourceChain));
+    const approveTx = extractApproveQuoteTx(quote);
+    let approveInfo: Record<string, unknown> | undefined;
     let simulateResult: Record<string, unknown> | undefined;
     if (opts.simulate) {
       const rpcUrl = await resolveRpcUrl({
@@ -264,7 +272,7 @@ bridge
         chainId: opts.chain,
         fallbackChainId: String(opts.sourceChain)
       });
-      const tx = signableTx ?? extractFirstQuoteTx(quote);
+      const tx = signableTx ?? extractBridgeQuoteTx(quote) ?? extractFirstQuoteTx(quote);
       if (!tx) {
         throw new Error("Missing tx in quote");
       }
@@ -301,7 +309,53 @@ bridge
         }
       }
     }
-    console.log(JSON.stringify({ quote, signableTx, simulate: simulateResult }, null, 2));
+    if (approveTx && (opts.rpcUrl || opts.chain || opts.sourceChain)) {
+      const rpcUrl = await resolveRpcUrl({
+        rpcUrl: opts.rpcUrl,
+        chainId: opts.chain,
+        fallbackChainId: String(opts.sourceChain)
+      });
+      const parsed = parseApproveData(approveTx.data);
+      if (parsed) {
+        const allowance = await erc20Allowance(
+          rpcUrl,
+          approveTx.to,
+          opts.user,
+          parsed.spender
+        );
+        const approveRequired = allowance < parsed.amount;
+        approveInfo = {
+          approveRequired,
+          allowance: allowance.toString(),
+          spender: parsed.spender,
+          amount: parsed.amount.toString(),
+          tx: approveTx
+        };
+        if (approveRequired && opts.autoApprove) {
+          const privateKey = requirePrivateKey(opts.privateKey);
+          const wallet = new Wallet(privateKey);
+          if (wallet.address.toLowerCase() !== String(opts.user).toLowerCase()) {
+            throw new Error("Auto-approve private key does not match --user");
+          }
+          const template = await buildSignTemplate({
+            rpcUrl,
+            from: opts.user,
+            to: approveTx.to,
+            data: approveTx.data,
+            value: approveTx.value
+          });
+          const signedApprove = await wallet.signTransaction({
+            ...template,
+            chainId: Number(String(opts.sourceChain))
+          });
+          const approveTxHash = await rpcSendRawTransaction(rpcUrl, signedApprove);
+          approveInfo = { ...approveInfo, approveTxHash };
+        }
+      }
+    }
+    console.log(
+      JSON.stringify({ quote, signableTx, approve: approveInfo, simulate: simulateResult }, null, 2)
+    );
   });
 
 bridge
@@ -336,7 +390,7 @@ bridge
           : undefined,
       channel: opts.channel
     });
-    const tx = extractFirstQuoteTx(quote);
+    const tx = extractBridgeQuoteTx(quote) ?? extractFirstQuoteTx(quote);
     if (!tx) {
       throw new Error("Missing tx in quote");
     }

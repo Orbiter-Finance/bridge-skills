@@ -25,7 +25,7 @@ Get a cross-chain quote and optimal route. This is the first step for "one-click
 
 ## Outputs
 - `fees`
-- `steps` (includes tx data/to/value/gasLimit)
+- `steps` (includes approve + bridge when required)
 - `details`
 
 ## Recommended Flow
@@ -39,7 +39,7 @@ Get a cross-chain quote and optimal route. This is the first step for "one-click
 8. `orbiter_transaction`
 
 ## Fast Path
-- Use `orbiter_bridge_flow` to get `quote + signableTx + simulate` in one call
+- Use `orbiter_bridge_flow` to get `quote + signableTx + approve + simulate` in one call
 - Use `orbiter_sign_template` to generate a signable transaction template
 - Use `orbiter_sign_broadcast` to sign and broadcast in one step
 

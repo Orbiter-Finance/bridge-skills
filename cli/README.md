@@ -40,6 +40,9 @@ orbiter bridge tx --source-chain 42161 --dest-chain 8453 --source-token 0x000000
 # Flow (quote + signable tx + simulate)
 orbiter bridge flow --source-chain 42161 --dest-chain 8453 --source-token 0x0000000000000000000000000000000000000000 --dest-token 0x0000000000000000000000000000000000000000 --amount 300000000000000 --user 0xabc... --recipient 0xabc... --chain 42161 --call-on-fail
 
+# Auto-approve ERC20 (if allowance is insufficient)
+ORBITER_PRIVATE_KEY=... orbiter bridge flow --source-chain 42161 --dest-chain 8453 --source-token 0x... --dest-token 0x... --amount 1000000 --user 0xabc... --recipient 0xabc... --chain 42161 --auto-approve
+
 # Sign template and broadcast
 orbiter bridge sign-template --source-chain 42161 --dest-chain 8453 --source-token 0x0000000000000000000000000000000000000000 --dest-token 0x0000000000000000000000000000000000000000 --amount 300000000000000 --user 0xabc... --recipient 0xabc... --chain 42161
 orbiter bridge sign --template-file ./template.json --chain-id 42161

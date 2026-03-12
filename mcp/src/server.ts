@@ -4,7 +4,11 @@ import { z } from "zod";
 import {
   OrbiterClient,
   buildSignableTx,
+  extractApproveQuoteTx,
+  extractBridgeQuoteTx,
   extractFirstQuoteTx,
+  erc20Allowance,
+  parseApproveData,
   fromHexQuantity,
   parseRevertReason,
   rpcChainId,
@@ -217,6 +221,8 @@ server.registerTool(
   async (input) => {
     const quote = await client.quote(input);
     const signableTx = buildSignableTx(quote, input.sourceChainId);
+    const approveTx = extractApproveQuoteTx(quote);
+    let approveInfo: Record<string, unknown> | undefined;
     let simulateResult: Record<string, unknown> | undefined;
     const shouldSimulate = input.simulate !== false;
     if (shouldSimulate) {
@@ -225,7 +231,7 @@ server.registerTool(
         chainId: input.chainId,
         fallbackChainId: input.sourceChainId
       });
-      const tx = signableTx ?? extractFirstQuoteTx(quote);
+      const tx = signableTx ?? extractBridgeQuoteTx(quote) ?? extractFirstQuoteTx(quote);
       if (!tx) {
         throw new Error("Missing tx in quote");
       }
@@ -262,8 +268,41 @@ server.registerTool(
         }
       }
     }
+    if (approveTx) {
+      try {
+        const url = await resolveRpcUrl({
+          rpcUrl: input.rpcUrl,
+          chainId: input.chainId,
+          fallbackChainId: input.sourceChainId
+        });
+        const parsed = parseApproveData(approveTx.data);
+        if (parsed) {
+          const allowance = await erc20Allowance(
+            url,
+            approveTx.to,
+            input.userAddress,
+            parsed.spender
+          );
+          const approveRequired = allowance < parsed.amount;
+          approveInfo = {
+            approveRequired,
+            allowance: allowance.toString(),
+            spender: parsed.spender,
+            amount: parsed.amount.toString(),
+            tx: approveTx
+          };
+        }
+      } catch {
+        // ignore allowance failures
+      }
+    }
     return {
-      content: [{ type: "text", text: JSON.stringify({ quote, signableTx, simulate: simulateResult }) }]
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({ quote, signableTx, approve: approveInfo, simulate: simulateResult })
+        }
+      ]
     };
   }
 );
@@ -295,7 +334,7 @@ server.registerTool(
   },
   async (input) => {
     const quote = await client.quote(input);
-    const tx = extractFirstQuoteTx(quote);
+    const tx = extractBridgeQuoteTx(quote) ?? extractFirstQuoteTx(quote);
     if (!tx) {
       throw new Error("Missing tx in quote");
     }

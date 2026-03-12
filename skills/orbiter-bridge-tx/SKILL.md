@@ -1,14 +1,15 @@
 ---
 name: orbiter-bridge-tx
-description: Derive the first transaction step from quote input for signing.
+description: Derive the bridge transaction step from quote input (skips approve).
 ---
 
 # Orbiter Bridge Tx
 
-Derive the first transaction step from quote input so it can be signed and broadcast directly.
+Derive the bridge transaction step from quote input so it can be signed and broadcast directly.
 
 ## When to Use
 - You want tx data without parsing the `quote` response
+- You want the actual bridge tx (not the approve tx)
 
 ## Inputs
 - `sourceChainId` (string)

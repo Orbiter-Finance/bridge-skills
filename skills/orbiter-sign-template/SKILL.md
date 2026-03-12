@@ -1,6 +1,6 @@
 ---
 name: orbiter-sign-template
-description: Generate a signable transaction template with optional RPC fields.
+description: Generate a signable transaction template with optional RPC enrichment.
 ---
 
 # Orbiter Sign Template

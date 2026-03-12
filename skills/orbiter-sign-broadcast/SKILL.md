@@ -1,6 +1,6 @@
 ---
 name: orbiter-sign-broadcast
-description: Sign a tx template locally and broadcast to the chain.
+description: Sign a tx template locally and broadcast it to the chain.
 ---
 
 # Orbiter Sign Broadcast
@@ -18,6 +18,10 @@ Sign a transaction template with a local private key and broadcast it to the cha
 - `chainId` (string)
 - `rpcUrl` (string, optional)
 - `chain` (string, optional)
+
+## Behavior
+- If `nonce`/`gasLimit`/fee fields are missing, the command auto-enriches them when `rpcUrl` (or `chain`) is provided.
+- If `from` is missing, it is derived from the private key.
 
 ## Outputs
 - `txHash`

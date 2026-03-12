@@ -79,12 +79,17 @@ npx skills add Orbiter-Finance/bridge-skills
 - `orbiter_rpc_health`
 
 ## RPC Map
-By default, reads `rpc-map.json` with a mapping from chain ID to RPC URL (values can be a string or an array of URLs; the first available value is used):
+By default, reads `rpc-map.json` with a mapping from chain ID to RPC URL (values can be a string or an array of URLs; the first available value is used). If not found, it fetches from `https://cdn.orbiter.finance/config/chains-explore.json`.
+
 ```json
 {
   "42161": "https://arb1.arbitrum.io/rpc"
 }
 ```
+
+## Notes on ERC20 Approve
+If the quote contains an `approve` step, `bridge flow` returns an `approve` object that reports
+whether allowance is sufficient, plus the approve transaction data.
 
 ## MCP Smoke Tests
 ```bash

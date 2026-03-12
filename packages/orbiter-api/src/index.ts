@@ -242,17 +242,34 @@ export class OrbiterClient {
   }
 }
 
+export function extractQuoteTxByAction(
+  quote: QuoteResponse,
+  action: string
+): QuoteTx | null {
+  const steps = quote.result?.steps ?? [];
+  const step = steps.find((item) => item.action === action && item.tx);
+  return step?.tx ?? null;
+}
+
 export function extractFirstQuoteTx(quote: QuoteResponse): QuoteTx | null {
   const tx = quote.result?.steps?.[0]?.tx;
   if (!tx) return null;
   return tx;
 }
 
+export function extractBridgeQuoteTx(quote: QuoteResponse): QuoteTx | null {
+  return extractQuoteTxByAction(quote, "bridge") ?? extractFirstQuoteTx(quote);
+}
+
+export function extractApproveQuoteTx(quote: QuoteResponse): QuoteTx | null {
+  return extractQuoteTxByAction(quote, "approve");
+}
+
 export function buildSignableTx(
   quote: QuoteResponse,
   chainId: string
 ): SignableTx | null {
-  const tx = extractFirstQuoteTx(quote);
+  const tx = extractBridgeQuoteTx(quote);
   if (!tx) return null;
   return {
     chainId,
@@ -316,6 +333,22 @@ export async function rpcCallContract(
   return rpcCall<string>(rpcUrl, "eth_call", [tx, blockTag]);
 }
 
+export async function erc20Allowance(
+  rpcUrl: string,
+  token: string,
+  owner: string,
+  spender: string
+): Promise<bigint> {
+  const ownerHex = owner.toLowerCase().replace(/^0x/, "").padStart(64, "0");
+  const spenderHex = spender.toLowerCase().replace(/^0x/, "").padStart(64, "0");
+  const data = `0xdd62ed3e${ownerHex}${spenderHex}`;
+  const result = await rpcCallContract(rpcUrl, {
+    to: token,
+    data
+  });
+  return fromHexQuantity(result) ?? 0n;
+}
+
 export function parseRevertReason(data?: string): string | null {
   if (!data || typeof data !== "string") return null;
   if (!data.startsWith("0x08c379a0")) return null;
@@ -331,6 +364,23 @@ export function parseRevertReason(data?: string): string | null {
   } catch {
     return null;
   }
+}
+
+export function parseApproveData(data?: string): { spender: string; amount: bigint } | null {
+  if (!data || typeof data !== "string") return null;
+  if (!data.startsWith("0x095ea7b3")) return null;
+  const hex = data.slice(10);
+  if (hex.length < 128) return null;
+  const spenderHex = hex.slice(24, 64);
+  const amountHex = hex.slice(64, 128);
+  const spender = `0x${spenderHex}`.toLowerCase();
+  let amount: bigint;
+  try {
+    amount = BigInt(`0x${amountHex}`);
+  } catch {
+    return null;
+  }
+  return { spender, amount };
 }
 
 export async function rpcChainId(rpcUrl: string): Promise<string> {

@@ -1,14 +1,15 @@
 ---
 name: orbiter-bridge-flow
-description: One-click flow combining quote, tx build, and optional simulation (no signing/broadcast).
+description: One-click flow combining quote, signable tx, approval check, and optional simulation (no signing/broadcast).
 ---
 
 # Orbiter Bridge Flow
 
-A one-click flow that combines quote, tx build, and optional simulation. Does not include signing or broadcasting.
+A one-click flow that combines quote, tx build, approval check, and optional simulation. Does not include signing or broadcasting.
 
 ## When to Use
 - You want a quote and a signable transaction in one step
+- You need to know whether an ERC20 approve is required
 - You want an RPC preflight before submitting
 
 ## Inputs
@@ -30,6 +31,12 @@ A one-click flow that combines quote, tx build, and optional simulation. Does no
 ## Outputs
 - `quote`
 - `signableTx`
+- `approve` (only when an approve step exists)
+  - `approveRequired` (boolean)
+  - `allowance` (string)
+  - `spender` (string)
+  - `amount` (string)
+  - `tx` (approve transaction)
 - `simulate`
 
 ## CLI Example

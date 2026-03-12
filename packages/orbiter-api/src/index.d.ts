@@ -135,6 +135,9 @@ export declare class OrbiterClient {
     private request;
 }
 export declare function extractFirstQuoteTx(quote: QuoteResponse): QuoteTx | null;
+export declare function extractQuoteTxByAction(quote: QuoteResponse, action: string): QuoteTx | null;
+export declare function extractBridgeQuoteTx(quote: QuoteResponse): QuoteTx | null;
+export declare function extractApproveQuoteTx(quote: QuoteResponse): QuoteTx | null;
 export declare function buildSignableTx(quote: QuoteResponse, chainId: string): SignableTx | null;
 export type RpcTx = {
     from?: string;
@@ -146,7 +149,12 @@ export declare function rpcCall<T>(rpcUrl: string, method: string, params?: unkn
 export declare function rpcEstimateGas(rpcUrl: string, tx: RpcTx): Promise<string>;
 export declare function rpcSendRawTransaction(rpcUrl: string, signedTx: string): Promise<string>;
 export declare function rpcCallContract(rpcUrl: string, tx: RpcTx, blockTag?: "latest" | "pending" | "earliest"): Promise<string>;
+export declare function erc20Allowance(rpcUrl: string, token: string, owner: string, spender: string): Promise<bigint>;
 export declare function parseRevertReason(data?: string): string | null;
+export declare function parseApproveData(data?: string): {
+    spender: string;
+    amount: bigint;
+} | null;
 export declare function rpcChainId(rpcUrl: string): Promise<string>;
 export declare function rpcClientVersion(rpcUrl: string): Promise<string>;
 export declare function toHexQuantity(value?: string): string | undefined;
