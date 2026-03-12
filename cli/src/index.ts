@@ -581,7 +581,14 @@ program
   .action(async () => {
     const client = getClient();
     const result = await client.chains();
-    console.log(JSON.stringify(result, null, 2));
+    const rows = (result.result ?? []).map((chain) => ({
+      chainId: chain.chainId,
+      name: chain.name,
+      native: chain.nativeCurrency?.symbol ?? "",
+      vm: chain.vm,
+      internalId: chain.internalId
+    }));
+    console.table(rows);
   });
 
 program
