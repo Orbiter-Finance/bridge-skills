@@ -196,7 +196,7 @@ server.registerTool(
   "orbiter_bridge_flow",
   {
     description:
-      "Full bridge flow: quote, derive signable tx, optional simulate via RPC. Does not sign or broadcast.",
+      "Full bridge flow: quote, derive signable tx, optional simulate via RPC. With autoApprove, signs and broadcasts the ERC20 approve using ORBITER_PRIVATE_KEY from the MCP process environment only (never pass keys via tool arguments).",
     inputSchema: z.object({
       sourceChainId: z.string(),
       destChainId: z.string(),
@@ -217,8 +217,7 @@ server.registerTool(
       chainId: z.string().optional(),
       simulate: z.boolean().optional(),
       callOnFail: z.boolean().optional(),
-      autoApprove: z.boolean().optional(),
-      privateKey: z.string().optional()
+      autoApprove: z.boolean().optional()
     })
   },
   async (input) => {
@@ -272,8 +271,9 @@ server.registerTool(
       }
     }
     if (approveTx) {
+      let approveUrl: string | undefined;
       try {
-        const url = await resolveRpcUrl({
+        approveUrl = await resolveRpcUrl({
           rpcUrl: input.rpcUrl,
           chainId: input.chainId,
           fallbackChainId: input.sourceChainId
@@ -281,7 +281,7 @@ server.registerTool(
         const parsed = parseApproveData(approveTx.data);
         if (parsed) {
           const allowance = await erc20Allowance(
-            url,
+            approveUrl,
             approveTx.to,
             input.userAddress,
             parsed.spender
@@ -294,31 +294,42 @@ server.registerTool(
             amount: parsed.amount.toString(),
             tx: approveTx
           };
-          if (approveRequired && input.autoApprove) {
-            if (!input.privateKey) {
-              throw new Error("Missing privateKey for autoApprove");
-            }
-            const wallet = new Wallet(input.privateKey);
-            if (wallet.address.toLowerCase() !== input.userAddress.toLowerCase()) {
-              throw new Error("privateKey does not match userAddress");
-            }
-            const template = await buildSignTemplate({
-              rpcUrl: url,
-              from: input.userAddress,
-              to: approveTx.to,
-              data: approveTx.data,
-              value: approveTx.value
-            });
-            const signedApprove = await wallet.signTransaction({
-              ...template,
-              chainId: Number(input.sourceChainId)
-            });
-            const approveTxHash = await rpcSendRawTransaction(url, signedApprove);
-            approveInfo = { ...approveInfo, approveTxHash };
-          }
         }
       } catch {
         // ignore allowance failures
+      }
+
+      if (approveInfo?.approveRequired && input.autoApprove) {
+        if (!approveUrl) {
+          approveUrl = await resolveRpcUrl({
+            rpcUrl: input.rpcUrl,
+            chainId: input.chainId,
+            fallbackChainId: input.sourceChainId
+          });
+        }
+        const pk = process.env.ORBITER_PRIVATE_KEY;
+        if (!pk) {
+          throw new Error(
+            "autoApprove requires ORBITER_PRIVATE_KEY in the MCP server environment; do not pass keys via tool arguments"
+          );
+        }
+        const wallet = new Wallet(pk);
+        if (wallet.address.toLowerCase() !== input.userAddress.toLowerCase()) {
+          throw new Error("ORBITER_PRIVATE_KEY does not match userAddress");
+        }
+        const template = await buildSignTemplate({
+          rpcUrl: approveUrl,
+          from: input.userAddress,
+          to: approveTx.to,
+          data: approveTx.data,
+          value: approveTx.value
+        });
+        const signedApprove = await wallet.signTransaction({
+          ...template,
+          chainId: Number(input.sourceChainId)
+        });
+        const approveTxHash = await rpcSendRawTransaction(approveUrl, signedApprove);
+        approveInfo = { ...approveInfo, approveTxHash };
       }
     }
     return {

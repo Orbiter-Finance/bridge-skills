@@ -1,11 +1,11 @@
 ---
 name: orbiter-bridge-flow
-description: One-click flow combining quote, signable tx, approval check, and optional simulation (no signing/broadcast).
+description: One-click flow combining quote, signable tx, approval check, optional simulation, and optional ERC20 auto-approve via ORBITER_PRIVATE_KEY on the MCP server.
 ---
 
 # Orbiter Bridge Flow
 
-A one-click flow that combines quote, tx build, approval check, and optional simulation. Does not include signing or broadcasting.
+A one-click flow that combines quote, tx build, approval check, and optional simulation. By default it does not sign or broadcast. If `autoApprove` is enabled, the MCP server may sign and broadcast only the ERC20 approve using `ORBITER_PRIVATE_KEY` from the server environment (never pass a key through tool arguments).
 
 ## When to Use
 - You want a quote and a signable transaction in one step
@@ -27,8 +27,7 @@ A one-click flow that combines quote, tx build, approval check, and optional sim
 - `chainId` (string, optional)
 - `simulate` (boolean, optional)
 - `callOnFail` (boolean, optional)
-- `autoApprove` (boolean, optional)
-- `privateKey` (string, optional, required when autoApprove is true)
+- `autoApprove` (boolean, optional; requires `ORBITER_PRIVATE_KEY` on the MCP server process, not in tool args)
 
 ## Outputs
 - `quote`

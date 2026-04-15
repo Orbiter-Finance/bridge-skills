@@ -13,6 +13,7 @@ pnpm -C . run dev
 ## Environment Variables
 - `ORBITER_API_BASE_URL` (optional, default `https://openapi.orbiter.finance`)
 - `ORBITER_API_KEY` (optional)
+- `ORBITER_PRIVATE_KEY` (optional, only for `orbiter_bridge_flow` when `autoApprove` is true; must be set on the MCP process, not passed through tool calls)
 
 ## Tools
 - `orbiter_chains`
@@ -29,7 +30,7 @@ pnpm -C . run dev
 - `orbiter_rpc_health`
 
 ## Notes
-- `orbiter_bridge_flow` can optionally auto-approve when `autoApprove` and `privateKey` are provided.
+- `orbiter_bridge_flow` can optionally auto-approve when `autoApprove` is true and `ORBITER_PRIVATE_KEY` is set for the server process.
 
 ## MCP Inspector
 

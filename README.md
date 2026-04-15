@@ -9,10 +9,10 @@ A toolkit skeleton for "one-click cross-chain" onboarding. Includes:
 ## Environment Variables
 - `ORBITER_API_BASE_URL` (optional, default `https://openapi.orbiter.finance`)
 - `ORBITER_API_KEY` (optional)
-- `ORBITER_PRIVATE_KEY` (optional, only used for local signing in `bridge sign` / `bridge sign-broadcast`)
+- `ORBITER_PRIVATE_KEY` (optional, used for local signing in the CLI `bridge sign` / `bridge sign-broadcast`, and for MCP `orbiter_bridge_flow` when `autoApprove` is enabled)
 
 Security note:
-The private key is only used for local signing. It is never written to disk or sent over the network.
+The private key is only used for local signing. It is never written to disk or sent over the network. For MCP, set `ORBITER_PRIVATE_KEY` on the MCP server process only — do not pass private keys through MCP tool arguments (they can be logged or retained by clients).
 
 ## Local Development
 ```bash
