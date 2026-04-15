@@ -23,4 +23,4 @@ This folder contains MCP skill docs for Orbiter Finance tools. Each skill has it
 - Inputs and outputs mirror MCP tool schemas.
 - CLI examples use the `orbiter` binary.
 - Quotes can include `approve`, `swap`, and `bridge` steps depending on the route.
-- `orbiter_bridge_flow` can optionally auto-approve when `autoApprove` and `privateKey` are provided.
+- `orbiter_bridge_flow` can optionally auto-approve when `autoApprove` is true and `ORBITER_PRIVATE_KEY` is set on the MCP server (never pass keys via tool arguments).
